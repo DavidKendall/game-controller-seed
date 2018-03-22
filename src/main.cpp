@@ -40,8 +40,8 @@ void user_input(void){
     the MBED board, including altitude,fuel,isflying,iscrashed
 */
 /*TODO YOU will have to hardwire the IP address in here */
-SocketAddress lander("192.168.4.204",65200);
-SocketAddress dash("192.168.1.13",65250);
+SocketAddress lander("192.168.60.22",65200);
+//SocketAddress dash("192.168.1.13",65250);
 
 EthernetInterface eth;
 UDPSocket udp;
@@ -49,7 +49,10 @@ UDPSocket udp;
 /* Task for synchronous UDP communications with lander */
 void communications(void){
     SocketAddress source;
+    char buffer[512];
+    nsapi_size_or_error_t nReceived;
 
+    sprintf(buffer, "command:?\n");
     /*TODO Create and format the message to send to the Lander */
 
     /*TODO Send and recieve messages
@@ -57,7 +60,10 @@ void communications(void){
             nsapi_size_or_error_t  n =
              udp.recvfrom(&source, <input buffer>, sizeof(<input>buffer));
     */
-
+    udp.sendto(lander, buffer, strlen(buffer));
+    nReceived = udp.recvfrom(&source, buffer, sizeof(buffer));
+    buffer[nReceived] = '\0';
+    printf("%s", buffer);
     /* Unpack incomming message */
     /*TODO split message into lines*/
     /*TODO for each line */
@@ -78,7 +84,7 @@ int main() {
     acc.enable();
 
     /* ethernet connection : usually takes a few seconds */
-    printf("conecting \n");
+    printf("connecting \n");
     eth.connect();
     /* write obtained IP address to serial monitor */
     const char *ip = eth.get_ip_address();
@@ -88,7 +94,7 @@ int main() {
     udp.open( &eth);
 
     printf("lander is on %s/%d\n",lander.get_ip_address(),lander.get_port() );
-    printf("dash   is on %s/%d\n",dash.get_ip_address(),dash.get_port() );
+  //  printf("dash   is on %s/%d\n",dash.get_ip_address(),dash.get_port() );
 
     /* periodic tasks */
     /*TODO call periodic tasks;
@@ -97,6 +103,7 @@ int main() {
 
       periodic.call_every(<time in ms>, <function to call>);
     */
+    periodic.call_every(1000, communications);
 
     /* start event dispatching thread */
     dispatch.start( callback(&periodic, &EventQueue::dispatch_forever) );
